@@ -1,4 +1,3 @@
-// test.c
 #include "header.h"
 #define PI 3.14159
 #define MAX 100

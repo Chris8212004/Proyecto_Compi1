@@ -2,36 +2,75 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
 #include "preprocessor.h"
 
-static int process_include_directive(PreprocessorState* state, 
-                                   const char* line, 
-                                   FILE* output) {
+static int process_include_directive(PreprocessorState* state, const char* line, FILE* output) {
     char filename[MAX_FILENAME];
     
-    // Buscar comillas después de #include
+    // Buscar para #include "archivo" (comillas dobles)
     const char* quote = strchr(line, '"');
-    if (!quote) {
-        fprintf(stderr, "Error: #include sin comillas en línea %d\n", state->current_line);
+    // Buscar para #include <archivo> (comillas angulares)
+    const char* angle = strchr(line, '<');
+    
+    if (!quote && !angle) {
+        fprintf(stderr, "Error: #include sin comillas o <> en línea %d\n", state->current_line);
         return 0;
     }
     
-    // Extraer nombre del archivo entre comillas
-    const char* end_quote = strchr(quote + 1, '"');
-    if (!end_quote) {
-        fprintf(stderr, "Error: #include sin comilla de cierre en línea %d\n", state->current_line);
+    const char* start, *end;
+    int is_system_header = 0;
+    
+    if (quote) {
+        // #include "archivo.h"
+        start = quote + 1;
+        end = strchr(start, '"');
+    } else {
+        // #include <archivo.h>
+        start = angle + 1;
+        end = strchr(start, '>');
+        is_system_header = 1;
+    }
+    
+    if (!end) {
+        fprintf(stderr, "Error: #include sin cierre en línea %d\n", state->current_line);
         return 0;
     }
     
-    int len = end_quote - (quote + 1);
-    strncpy(filename, quote + 1, len);
+    int len = end - start;
+    strncpy(filename, start, len);
     filename[len] = '\0';
     
-    // ✅ LLAMADA CORRECTA ahora - solo 3 parámetros
-    return preprocess_file(filename, output, state);
+    printf("Buscando archivo: %s (system: %d)\n", filename, is_system_header);
+    
+    // Si es sistema (#include <...>), NO procesar recursivamente
+    if (is_system_header) {
+        printf("Ignorando header de sistema: %s\n", filename);
+        return 1;  // Success pero no procesar recursivamente
+    }
+    
+    // Para #include "..." buscar en directorios locales
+    FILE* test_file = fopen(filename, "r");
+    if (test_file) {
+        fclose(test_file);
+        return preprocess_file(filename, output, state);
+    }
+    
+    char include_path[MAX_FILENAME];
+    snprintf(include_path, sizeof(include_path), "include/%s", filename);
+    test_file = fopen(include_path, "r");
+    if (test_file) {
+        fclose(test_file);
+        return preprocess_file(include_path, output, state);
+    }
+    
+    fprintf(stderr, "Error: No se puede encontrar archivo %s\n", filename);
+    return 0;
 }
 
-static int preprocess_file(const char* filename, FILE* output, PreprocessorState* state) {
+int preprocess_file(const char* filename, FILE* output, PreprocessorState* state) {
+    printf("Procesando archivo: %s\n", filename);
+
     FILE* input = fopen(filename, "r");
     if (!input) {
         fprintf(stderr, "Error: No se puede abrir archivo %s\n", filename);
@@ -84,7 +123,7 @@ static int preprocess_file(const char* filename, FILE* output, PreprocessorState
 }
 
 // En preprocessor.c
-static void process_define_directive(PreprocessorState* state, const char* line) {
+void process_define_directive(PreprocessorState* state, const char* line) {
     char name[MAX_FILENAME];
     char value[MAX_DEFINE_VALUE] = "";
     
@@ -141,45 +180,53 @@ const char* find_define(PreprocessorState* state, const char* name) {
     }
     return NULL;
 }
-// En preprocessor.c
 char* expand_defines(PreprocessorState* state, const char* text) {
-    char* result = malloc(strlen(text) * 2 + 1); // Buffer amplio
+    char* result = malloc(strlen(text) * 2 + 1);
     result[0] = '\0';
     
     const char* ptr = text;
     char word[256];
+    int expanded;
     
-    while (*ptr) {
-        // Si es inicio de identificador
-        if (isalpha(*ptr) || *ptr == '_') {
-            int i = 0;
-            word[i++] = *ptr++;
-            
-            // Completar el identificador
-            while (isalnum(*ptr) || *ptr == '_') {
-                if (i < 255) word[i++] = *ptr;
+    do {
+        expanded = 0;
+        char* temp_result = malloc(strlen(text) * 2 + 1);
+        temp_result[0] = '\0';
+        ptr = text;
+        
+        while (*ptr) {
+            if (isalpha(*ptr) || *ptr == '_') {
+                int i = 0;
+                word[i++] = *ptr++;
+                
+                while (isalnum(*ptr) || *ptr == '_') {
+                    if (i < 255) word[i++] = *ptr;
+                    ptr++;
+                }
+                word[i] = '\0';
+                
+                const char* expansion = find_define(state, word);
+                if (expansion) {
+                    strcat(temp_result, expansion);
+                    expanded = 1;
+                } else {
+                    strcat(temp_result, word);
+                }
+            } else {
+                char temp[2] = {*ptr, '\0'};
+                strcat(temp_result, temp);
                 ptr++;
             }
-            word[i] = '\0';
-            
-            // Verificar si es macro
-            const char* expansion = find_define(state, word);
-            if (expansion) {
-                strcat(result, expansion);
-            } else {
-                strcat(result, word);
-            }
-        } else {
-            // Carácter normal - copiar tal cual
-            char temp[2] = {*ptr, '\0'};
-            strcat(result, temp);
-            ptr++;
         }
-    }
+        
+        free(result);
+        result = temp_result;
+        text = result;  // Usar el resultado como nueva entrada para siguiente iteración
+        
+    } while (expanded);  // Repetir hasta que no haya más expansiones
     
     return result;
 }
-// En preprocessor.c
 int preprocess(const char* input_filename, const char* output_filename) {
     PreprocessorState state;
     state.define_count = 0;
