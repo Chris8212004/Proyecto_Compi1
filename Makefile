@@ -9,7 +9,7 @@ OBJ_DIR = obj
 BIN_DIR = bin
 
 # Archivos fuente
-SRCS = $(SRC_DIR)/main.c $(SRC_DIR)/preprocessor.c $(SRC_DIR)/lex.yy.c
+SRCS = $(SRC_DIR)/main.c $(SRC_DIR)/preprocessor.c $(SRC_DIR)/beamer_generator.c $(SRC_DIR)/lex.yy.c
 OBJECTS = $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
 all: $(TARGET)
