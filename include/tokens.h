@@ -1,10 +1,11 @@
 #ifndef TOKENS_H
 #define TOKENS_H
-//Los tokens provisionales, realmente no se si son todos
+
 typedef enum {
-    TOKEN_ERROR,
+    TOKEN_ERROR = 0,
     TOKEN_EOF,
-    // Palabras clave C89
+    
+    // Palabras reservadas
     TOKEN_AUTO,
     TOKEN_BREAK,
     TOKEN_CASE,
@@ -37,16 +38,14 @@ typedef enum {
     TOKEN_VOID,
     TOKEN_VOLATILE,
     TOKEN_WHILE,
-
-    // Identificadores
+    
+    // Identificadores y constantes
     TOKEN_ID,
-
-    // Constantes
     TOKEN_CONST_ENTERO,
     TOKEN_CONST_FLOTANTE,
     TOKEN_CONST_CARACTER,
     TOKEN_CONST_CADENA,
-
+    
     // Operadores
     TOKEN_MAS,
     TOKEN_MENOS,
@@ -62,18 +61,14 @@ typedef enum {
     TOKEN_AND,
     TOKEN_OR,
     TOKEN_NOT,
-
-    // Operadores de bits
     TOKEN_AND_BIT,
     TOKEN_OR_BIT,
     TOKEN_XOR,
     TOKEN_DESPL_IZQ,
     TOKEN_DESPL_DER,
-
-    // Incremento/Decremento
     TOKEN_INC,
     TOKEN_DEC,
-
+    
     // Puntuación
     TOKEN_PUNTO_COMA,
     TOKEN_COMA,
@@ -85,6 +80,7 @@ typedef enum {
     TOKEN_CORCH_DER,
     TOKEN_PUNTO,
     TOKEN_FLECHA
+    
 } TokenType;
 
 typedef struct {
@@ -92,14 +88,6 @@ typedef struct {
     char* lexeme;
     int line;
     int column;
-    union {
-        int int_value;
-        float float_value;
-        char char_value;
-        char* string_value;
-    } value;
 } Token;
-
-Token Get_Token(void);
 
 #endif
