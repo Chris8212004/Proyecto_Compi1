@@ -89,6 +89,7 @@ COMENTBLOCK \/\*([^*]|\*+[^*/])*\*+\/
 {COMENTBLOCK}   {}
 {ESPACIOS}      { column += yyleng; }/*Lo de column y eso se puede borrar, es para debuggear*/
 {NUEVALINEA}    { line++; column = 1; }
+<<EOF>>		{ return TOKEN_EOF;}
 .               { return TOKEN_ERROR; }
 %%
 
