@@ -6,9 +6,10 @@
 
 void generar_portada(FILE* beamer);
 void generar_flex(FILE* beamer);
-void generar_codigo(FILE* beamer, const char* preprocessed_file);
-void generar_histograma(FILE* beamer, const char* token_stats);
-void generar_beamer(const char* preprocessed_file, const char* token_stats);
+void generar_codigo(FILE* beamer);
+void generar_histograma(FILE* beamer);
+void generar_beamer( int cnt_pClaves, int cnt_id, int cnt_cons, int cnt_op, int cnt_puntu);
 const char* get_token_color(TokenType type);
+void generar_pie(FILE* beamer);
 
 #endif
