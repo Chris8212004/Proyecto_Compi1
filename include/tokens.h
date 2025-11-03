@@ -51,6 +51,7 @@ typedef enum {
     TOKEN_MENOS,
     TOKEN_MULT,
     TOKEN_DIV,
+    TOKEN_MOD,
     TOKEN_ASIGN,
     TOKEN_IGUAL,
     TOKEN_DIF,
@@ -68,9 +69,24 @@ typedef enum {
     TOKEN_DESPL_DER,
     TOKEN_INC,
     TOKEN_DEC,
+    TOKEN_TERN_IF,
     
+    //Operadores asignacion
+    TOKEN_ADD_ASSIGN,
+    TOKEN_SUB_ASSIGN,
+    TOKEN_MUL_ASSIGN,
+    TOKEN_DIV_ASSIGN,
+    TOKEN_MOD_ASSIGN,
+    TOKEN_SHL_ASSIGN,
+    TOKEN_SHR_ASSIGN,
+    TOKEN_AND_ASSIGN,
+    TOKEN_XOR_ASSIGN,
+    TOKEN_OR_ASSIGN,
     // Puntuación
     TOKEN_PUNTO_COMA,
+    TOKEN_GATO,
+    TOKEN_TILDE,
+    TOKEN_DOS_PUNTO,
     TOKEN_COMA,
     TOKEN_PARENT_IZQ,
     TOKEN_PARENT_DER,
@@ -88,6 +104,13 @@ typedef struct {
     char* lexeme;
     int line;
     int column;
+    union {
+        int valorEntero;
+        double valorFlotante;
+        char caracter;
+        char* cadena;
+    } valor;
 } Token;
+
 
 #endif
