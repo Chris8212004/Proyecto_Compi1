@@ -45,7 +45,6 @@ static int process_include_directive(PreprocessorState* state, const char* line,
     
     // Si es sistema (#include <...>), NO procesar recursivamente
     if (is_system_header) {
-        printf("Ignorando header de sistema: %s\n", filename);
         return 1;  // Success pero no procesar recursivamente
     }
     
@@ -69,7 +68,7 @@ static int process_include_directive(PreprocessorState* state, const char* line,
 }
 
 int preprocess_file(const char* filename, FILE* output, PreprocessorState* state) {
-    printf("Procesando archivo: %s\n", filename);
+
 
     FILE* input = fopen(filename, "r");
     if (!input) {
