@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "preprocessor.h"
-#include "tokens.h"
 #include "beamer_generator.h"
 
 // Estas variables vienen de Flex
@@ -55,6 +54,7 @@ const char* token_names[] = {
     "TOKEN_MENOS",
     "TOKEN_MULT",
     "TOKEN_DIV",
+    "TOKEN_MOD",
     "TOKEN_ASIGN",
     "TOKEN_IGUAL",
     "TOKEN_DIF",
@@ -72,7 +72,21 @@ const char* token_names[] = {
     "TOKEN_DESPL_DER",
     "TOKEN_INC",
     "TOKEN_DEC",
+    "TOKEN_TERN_IF",
+    "TOKEN_ADD_ASSIGN",
+    "TOKEN_SUB_ASSIGN",
+    "TOKEN_MUL_ASSIGN",
+    "TOKEN_DIV_ASSIGN" ,
+    "TOKEN_MOD_ASSIGN" ,
+    "TOKEN_SHL_ASSIGN" ,
+    "TOKEN_SHR_ASSIGN" ,
+    "TOKEN_AND_ASSIGN" ,
+    "TOKEN_XOR_ASSIGN",
+    "TOKEN_OR_ASSIGN",
     "TOKEN_PUNTO_COMA",
+    "TOKEN_GATO",
+    "TOKEN_TILDE",
+    "TOKEN_DOS_PUNTO",
     "TOKEN_COMA",
     "TOKEN_PARENT_IZQ",
     "TOKEN_PARENT_DER",
@@ -87,7 +101,7 @@ const char* token_names[] = {
 // Variables para capturar tokens
 Token* all_tokens = NULL;
 int total_tokens_captured = 0;
-int max_tokens = 1000;
+int max_tokens = 1000000;
 
 // Función para guardar tokens
 void save_token(Token token) {
@@ -96,7 +110,6 @@ void save_token(Token token) {
     }
     
     if (total_tokens_captured < max_tokens) {
-        // Copiar el token (importante: duplicar el lexema)
         all_tokens[total_tokens_captured].type = token.type;
         all_tokens[total_tokens_captured].lexeme = strdup(token.lexeme);
         all_tokens[total_tokens_captured].line = token.line;
@@ -113,27 +126,10 @@ int main(int argc, char *argv[]) {
     
     const char* input_file = argv[1];
     const char* output_file = "temp_preprocessed.c";
-    const char* token_stats_file = "token_stats.dat";
     
-    printf("Preprocesando: %s\n", input_file);
     
     if (preprocess(input_file, output_file)) {
-        printf("✅ Preprocesamiento exitoso!\n");
-        printf("📁 Salida guardada en: %s\n", output_file);
 
-        // Mostrar contenido preprocesado
-        printf("\n=== CONTENIDO PREPROCESADO ===\n");
-        FILE *f = fopen(output_file, "r");
-        if (f) {
-            char line[1024];
-            while (fgets(line, sizeof(line), f)) {
-                printf("%s", line);
-            }
-            fclose(f);
-        }
-
-        // Ejecutar scanner sobre el código preprocesado
-        printf("\n=== INICIANDO SCANNER ===\n");
         yyin = fopen(output_file, "r");
         if (!yyin) {
             perror("Error al abrir el archivo preprocesado");
@@ -142,60 +138,54 @@ int main(int argc, char *argv[]) {
 
         Token token;
         int total_tokens = 0;
-        int token_counts[70] = {0};
+        int token_counts[85] = {0};
         
         // Reinicializar el array de tokens
         all_tokens = NULL;
         total_tokens_captured = 0;
         
-        printf("🔍 Procesando tokens...\n");
         while ((token = Get_Token()).type != TOKEN_EOF) {
-            printf("Token: %-20s Lexema: %-15s Linea: %d Columna: %d\n",
-                   token_names[token.type], token.lexeme, token.line, token.column);
-            
-            // Guardar token para el Beamer
+
             save_token(token);
             
             // Contar tokens para estadísticas
-            if (token.type < 70) {
+            if (token.type < 85) {
                 token_counts[token.type]++;
             }
             total_tokens++;
             
-            // NO liberar aquí - se libera después de guardar en archivo
-            // free(token.lexeme);
+           
         }
 
         fclose(yyin);
 
         // Guardar tokens en archivo para el Beamer
-        printf("\n=== GUARDANDO TOKENS PARA BEAMER ===\n");
         FILE* token_file = fopen("all_tokens.dat", "w");
         if (token_file) {
-            printf("📝 Escribiendo %d tokens en all_tokens.dat...\n", total_tokens_captured);
             for (int i = 0; i < total_tokens_captured; i++) {
-                fprintf(token_file, "%d|%s|%d|%d\n", 
+                fprintf(token_file, "%dª%sª%dª%d\n", 
                         all_tokens[i].type, 
                         all_tokens[i].lexeme,
                         all_tokens[i].line,
                         all_tokens[i].column);
             }
             fclose(token_file);
-            printf("✅ Tokens guardados: %d\n", total_tokens_captured);
-        } else {
-            printf("❌ Error: No se pudo crear archivo de tokens\n");
         }
 
-        // Generar archivo de estadísticas para el Beamer
-        printf("\n=== GENERANDO ESTADÍSTICAS PARA BEAMER ===\n");
-        FILE* stats = fopen(token_stats_file, "w");
-        if (stats) {
-            // Calcular estadísticas por categoría
-            int palabras_clave = token_counts[TOKEN_INT] + token_counts[TOKEN_FLOAT] + token_counts[TOKEN_CHAR] +
-                               token_counts[TOKEN_IF] + token_counts[TOKEN_ELSE] + token_counts[TOKEN_FOR] +
-                               token_counts[TOKEN_WHILE] + token_counts[TOKEN_RETURN] + token_counts[TOKEN_VOID] +
-                               token_counts[TOKEN_DO] + token_counts[TOKEN_SWITCH] + token_counts[TOKEN_CASE] +
-                               token_counts[TOKEN_BREAK] + token_counts[TOKEN_CONTINUE] + token_counts[TOKEN_DEFAULT];
+        
+        
+        int palabras_clave =token_counts[TOKEN_AUTO] + token_counts[TOKEN_BREAK] + token_counts[TOKEN_CASE] +
+                                token_counts[TOKEN_CHAR] + token_counts[TOKEN_CONST] + token_counts[TOKEN_CONTINUE] +
+                                token_counts[TOKEN_DEFAULT] + token_counts[TOKEN_DO] + token_counts[TOKEN_DOUBLE] +
+                                token_counts[TOKEN_ELSE] + token_counts[TOKEN_ENUM] + token_counts[TOKEN_EXTERN] +
+                                token_counts[TOKEN_FLOAT] + token_counts[TOKEN_FOR] + token_counts[TOKEN_GOTO] +
+                                token_counts[TOKEN_IF] + token_counts[TOKEN_INT] + token_counts[TOKEN_LONG] +
+                                token_counts[TOKEN_REGISTER] + token_counts[TOKEN_RETURN] + token_counts[TOKEN_SHORT] +
+                                token_counts[TOKEN_SIGNED] + token_counts[TOKEN_SIZEOF] +
+                                token_counts[TOKEN_STATIC] + token_counts[TOKEN_STRUCT] + token_counts[TOKEN_SWITCH] +
+                                token_counts[TOKEN_TYPEDEF] + token_counts[TOKEN_UNION] + token_counts[TOKEN_UNSIGNED] +
+                                token_counts[TOKEN_VOID] + token_counts[TOKEN_VOLATILE] +token_counts[TOKEN_WHILE];
+
             
             int constantes = token_counts[TOKEN_CONST_ENTERO] + token_counts[TOKEN_CONST_FLOTANTE] +
                            token_counts[TOKEN_CONST_CARACTER] + token_counts[TOKEN_CONST_CADENA];
@@ -206,32 +196,22 @@ int main(int argc, char *argv[]) {
                            token_counts[TOKEN_MENOR_IGUAL] + token_counts[TOKEN_MAYOR_IGUAL] + token_counts[TOKEN_AND] +
                            token_counts[TOKEN_OR] + token_counts[TOKEN_NOT] + token_counts[TOKEN_AND_BIT] +
                            token_counts[TOKEN_OR_BIT] + token_counts[TOKEN_XOR] + token_counts[TOKEN_DESPL_IZQ] +
-                           token_counts[TOKEN_DESPL_DER] + token_counts[TOKEN_INC] + token_counts[TOKEN_DEC];
+                           token_counts[TOKEN_DESPL_DER] + token_counts[TOKEN_INC] + token_counts[TOKEN_DEC] +
+                           token_counts[TOKEN_ADD_ASSIGN] + token_counts[TOKEN_SUB_ASSIGN] + token_counts[TOKEN_MUL_ASSIGN] +
+                           token_counts[TOKEN_DIV_ASSIGN] + token_counts[TOKEN_SHL_ASSIGN] + token_counts[TOKEN_SHR_ASSIGN] +
+                           token_counts[TOKEN_AND_ASSIGN] + token_counts[TOKEN_XOR_ASSIGN] + token_counts[TOKEN_MOD_ASSIGN] +
+                           token_counts[TOKEN_OR_ASSIGN] + token_counts[TOKEN_TERN_IF] + token_counts[TOKEN_MOD];
             
             int puntuacion = token_counts[TOKEN_PUNTO_COMA] + token_counts[TOKEN_COMA] +
                            token_counts[TOKEN_PARENT_IZQ] + token_counts[TOKEN_PARENT_DER] +
                            token_counts[TOKEN_LLAVE_IZQ] + token_counts[TOKEN_LLAVE_DER] +
                            token_counts[TOKEN_CORCH_IZQ] + token_counts[TOKEN_CORCH_DER] +
-                           token_counts[TOKEN_PUNTO] + token_counts[TOKEN_FLECHA];
+                           token_counts[TOKEN_PUNTO] + token_counts[TOKEN_FLECHA] + token_counts[TOKEN_DOS_PUNTO] +
+                           token_counts[TOKEN_TILDE] + token_counts[TOKEN_GATO]                         ;
             
-            fprintf(stats, "PalabrasClave %d\n", palabras_clave);
-            fprintf(stats, "Identificadores %d\n", token_counts[TOKEN_ID]);
-            fprintf(stats, "Constantes %d\n", constantes);
-            fprintf(stats, "Operadores %d\n", operadores);
-            fprintf(stats, "Puntuacion %d\n", puntuacion);
-            fprintf(stats, "Total %d\n", total_tokens);
-            fclose(stats);
             
-            printf("📊 Estadísticas guardadas:\n");
-            printf("   - Palabras clave: %d\n", palabras_clave);
-            printf("   - Identificadores: %d\n", token_counts[TOKEN_ID]);
-            printf("   - Constantes: %d\n", constantes);
-            printf("   - Operadores: %d\n", operadores);
-            printf("   - Puntuación: %d\n", puntuacion);
-            printf("   - Total tokens: %d\n", total_tokens);
-        }
 
-        generar_beamer(output_file, token_stats_file);
+        generar_beamer(palabras_clave, token_counts[TOKEN_ID], constantes, operadores, puntuacion);
 
         
         // Liberar memoria de tokens
@@ -244,7 +224,7 @@ int main(int argc, char *argv[]) {
         }
         
     } else {
-        printf("❌ Error en preprocesamiento\n");
+        printf("Error en preprocesamiento\n");
         return 1;
     }
     
