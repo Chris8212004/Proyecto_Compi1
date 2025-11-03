@@ -41,7 +41,6 @@ static int process_include_directive(PreprocessorState* state, const char* line,
     strncpy(filename, start, len);
     filename[len] = '\0';
     
-    printf("Buscando archivo: %s (system: %d)\n", filename, is_system_header);
     
     // Si es sistema (#include <...>), NO procesar recursivamente
     if (is_system_header) {
