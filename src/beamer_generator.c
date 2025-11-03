@@ -3,7 +3,18 @@
 #include <string.h>
 #include <stdbool.h>
 #include "beamer_generator.h"
-#include "tokens.h"
+
+const char* TK_Palabras_Reservadas = "blue";
+const char* TK_Identificadores = "red";
+const char* TK_Constantes = "orange";
+const char* TK_Operadores = "purple";
+const char* TK_Puntuacion = "teal";
+int Cant_PalabrasClave = 0;
+int Cant_Identificadores = 0;
+int Cant_Constantes = 0;
+int Cant_Operadores = 0;
+int Cant_Puntuacion = 0;
+int Cant_Total = 0;
 
 void generar_portada(FILE* beamer) {
     fprintf(beamer, "\\begin{frame}\n");
@@ -28,25 +39,27 @@ void generar_flex(FILE* beamer) {
     // Slide 1: Introducción a Flex
     fprintf(beamer, "\\begin{frame}{Herramienta Flex}\n");
     fprintf(beamer, "    \\begin{block}{¿Qué es Flex?}\n");
-    fprintf(beamer, "        Flex (Fast Lexical Analyzer Generator) es una herramienta para generar analizadores léxicos\\\\\n");
-    fprintf(beamer, "        que convierte texto fuente en una secuencia de tokens.\n");
+    fprintf(beamer, "Flex (Fast Lexical Analyzer Generator) es una herramienta para generar analizadores léxicos automáticamente");             
+    fprintf(beamer, " mediante el uso de un conjunto de reglas que el usuario defina.\\\\\n ");
+    fprintf(beamer, " Con esto se puede procesar un texto fuente en una secuencia de tokens según las reglas establecidas.\\\\\n");
     fprintf(beamer, "    \\end{block}\n");
     fprintf(beamer, "    \\begin{itemize}\n");
     fprintf(beamer, "        \\item Desarrollado en C\n");
-    fprintf(beamer, "        \\item Usa expresiones regulares para definir patrones\n");
-    fprintf(beamer, "        \\item Genera código C eficiente y portable\n");
+    fprintf(beamer, "        \\item Utiliza expresiones regulares y codigo de C para definir las reglas\n");
+    fprintf(beamer, "        \\item Genera de manera automática código C eficiente y portable\n");
     fprintf(beamer, "        \\item Ampliamente usado en compiladores e intérpretes\n");
     fprintf(beamer, "    \\end{itemize}\n");
     fprintf(beamer, "\\end{frame}\n\n");
 
     // Slide 2: Proceso de Scanning 
     fprintf(beamer, "\\begin{frame}{Proceso de Scanning}\n");
-    fprintf(beamer, "    \\vspace{0.5cm}\n");
-    fprintf(beamer, "    \\begin{enumerate}\n");
-    fprintf(beamer, "        \\item El scanner lee el texto carácter por carácter\n");
-    fprintf(beamer, "        \\item Identifica patrones usando expresiones regulares\n");
-    fprintf(beamer, "        \\item Genera tokens con información del lexema\n");
-    fprintf(beamer, "        \\item Maneja errores léxicos cuando encuentra patrones no válidos\n");
+    fprintf(beamer, "  \\vspace{0.5cm}\n");
+    fprintf(beamer, "   \\begin{enumerate}\n");
+    fprintf(beamer, "  \\item Se preprocesa el archivo fuente que será analizado por el scanner\n");
+    fprintf(beamer, "  \\item Se analiza el archivo fuente utilizando scanner.l, donde se lee el archivo y se le aplican las reglas\n");
+    fprintf(beamer, "  \\item Cada carácter o conjunto de caracteres es identificado y clasificado en el token correspondiente\n");
+    fprintf(beamer, "  \\item En cada token se guarda el valor especifico (lexema) encontrado por el scanner en el archivo fuente\n");
+    fprintf(beamer, "  \\item El resultado del analisis lexico se encuentra al utilizar las funcionas propias de Flex\n");
     fprintf(beamer, "    \\end{enumerate}\n");
     fprintf(beamer, "\\end{frame}\n\n");
 }
@@ -86,24 +99,26 @@ const char* get_token_color(TokenType type) {
         case TOKEN_VOID:
         case TOKEN_VOLATILE:
         case TOKEN_WHILE:
-            return "blue";
+            return TK_Palabras_Reservadas;
         
         // Identificadores - ROJO
         case TOKEN_ID:
-            return "red";
+            return TK_Identificadores;
         
         // Constantes - NARANJA
         case TOKEN_CONST_ENTERO:
         case TOKEN_CONST_FLOTANTE:
         case TOKEN_CONST_CARACTER:
         case TOKEN_CONST_CADENA:
-            return "orange";
+            return TK_Constantes;
         
         // Operadores - MORADO
         case TOKEN_MAS:
         case TOKEN_MENOS:
         case TOKEN_MULT:
         case TOKEN_DIV:
+        case TOKEN_MOD:
+        case TOKEN_TERN_IF:
         case TOKEN_ASIGN:
         case TOKEN_IGUAL:
         case TOKEN_DIF:
@@ -121,7 +136,17 @@ const char* get_token_color(TokenType type) {
         case TOKEN_DESPL_DER:
         case TOKEN_INC:
         case TOKEN_DEC:
-            return "purple";
+        case TOKEN_ADD_ASSIGN:
+        case TOKEN_SUB_ASSIGN:
+        case TOKEN_MUL_ASSIGN:
+        case TOKEN_DIV_ASSIGN:
+        case TOKEN_MOD_ASSIGN:
+        case TOKEN_SHL_ASSIGN:
+        case TOKEN_SHR_ASSIGN:
+        case TOKEN_AND_ASSIGN:
+        case TOKEN_XOR_ASSIGN:
+        case TOKEN_OR_ASSIGN:
+            return TK_Operadores;
         
         // Puntuación - VERDE AZUL (INCLUYENDO LLAVES)
         case TOKEN_PUNTO_COMA:
@@ -132,11 +157,14 @@ const char* get_token_color(TokenType type) {
         case TOKEN_LLAVE_DER:
         case TOKEN_CORCH_IZQ:
         case TOKEN_CORCH_DER:
+        case TOKEN_TILDE:
         case TOKEN_PUNTO:
+        case TOKEN_DOS_PUNTO:
+        case TOKEN_GATO:
         case TOKEN_FLECHA:
-            return "teal";
+            return TK_Puntuacion;
         
-        // Por defecto - negro (incluye TOKEN_ERROR y TOKEN_EOF)
+        
         case TOKEN_ERROR:
         case TOKEN_EOF:
         default:
@@ -232,11 +260,11 @@ char* escape_latex_complete(const char* input) {
     return result;
 }
 
-void generar_codigo(FILE* beamer, const char* preprocessed_file) {
+void generar_codigo(FILE* beamer) {
     // Leer tokens desde all_tokens.dat
     Token* tokens = NULL;
     int token_count = 0;
-    int max_tokens = 10000;
+    int max_tokens = 100000;
     FILE* token_file = fopen("all_tokens.dat", "r");
 
     if (!token_file) {
@@ -257,10 +285,10 @@ void generar_codigo(FILE* beamer, const char* preprocessed_file) {
 
     char line[1024];
     while (fgets(line, sizeof(line), token_file) && token_count < max_tokens) {
-        char* token_type_str = strtok(line, "|");
-        char* lexeme = strtok(NULL, "|");
-        char* line_str = strtok(NULL, "|");
-        char* column_str = strtok(NULL, "|");
+        char* token_type_str = strtok(line, "ª");
+        char* lexeme = strtok(NULL, "ª");
+        char* line_str = strtok(NULL, "ª");
+        char* column_str = strtok(NULL, "ª");
 
         if (token_type_str && lexeme) {
             lexeme[strcspn(lexeme, "\r\n")] = '\0';
@@ -293,8 +321,8 @@ void generar_codigo(FILE* beamer, const char* preprocessed_file) {
     }
     
 
-    // Dividir en slides cada 20 líneas
-    int lines_per_slide = 20;
+    // Dividir en slides
+    int lines_per_slide = 30;
     int total_slides = (max_line + lines_per_slide - 1) / lines_per_slide;
     
 
@@ -307,7 +335,7 @@ void generar_codigo(FILE* beamer, const char* preprocessed_file) {
         }
 
         
-        fprintf(beamer, "\\begin{frame}[fragile]{Código Preprocesado - Líneas %d a %d}\n", start_line, end_line);
+        fprintf(beamer, "\\begin{frame}[fragile,shrink=10]{Código Preprocesado - Líneas %d a %d}\n", start_line, end_line);
         fprintf(beamer, "\\scriptsize\n");
         fprintf(beamer, "\\begin{flushleft}\n");
         
@@ -357,8 +385,9 @@ void generar_codigo(FILE* beamer, const char* preprocessed_file) {
                 } else {
                     fprintf(beamer, "{\\color{%s}\\texttt{%s}}", color, escaped);
                 }
-            } else if (tokens[i].type >= TOKEN_MAS && tokens[i].type <= TOKEN_DEC) {
-                fprintf(beamer, "{\\color{%s}\\textbf{%s}}", color, escaped);
+            } else if (tokens[i].type >= TOKEN_MAS && tokens[i].type <= TOKEN_TERN_IF) {
+                        if(tokens[i].type == TOKEN_SHR_ASSIGN) {fprintf(beamer, "{\\color{%s}\\verb|%s|}", color, tokens[i].lexeme);} else {//Para el >>=
+                fprintf(beamer, "{\\color{%s}\\textbf{%s}}", color, escaped);}
             } else if (tokens[i].type >= TOKEN_PUNTO_COMA && tokens[i].type <= TOKEN_FLECHA) {
                 fprintf(beamer, "{\\color{%s}\\textbf{%s}}", color, escaped);
             } else {
@@ -394,7 +423,6 @@ void generar_codigo(FILE* beamer, const char* preprocessed_file) {
                         next_token->type == TOKEN_MAYOR_IGUAL ||
                         next_token->type == TOKEN_MENOR ||
                         next_token->type == TOKEN_MENOR_IGUAL ||
-                        next_token->type == TOKEN_PUNTO ||
                         next_token->type == TOKEN_FLECHA) {
                         needs_space = 0;
                     }
@@ -440,31 +468,14 @@ void generar_codigo(FILE* beamer, const char* preprocessed_file) {
     
 }
 
-void generar_histograma(FILE* beamer, const char* token_stats) {
-    // Leer estadísticas reales
-    int palabras_clave = 0, identificadores = 0, constantes = 0, operadores = 0, puntuacion = 0, total = 0;
-    
-    FILE* stats_file = fopen(token_stats, "r");
-    if (stats_file) {
-        char category[50];
-        int count;
-        while (fscanf(stats_file, "%s %d", category, &count) == 2) {
-            if (strcmp(category, "PalabrasClave") == 0) palabras_clave = count;
-            else if (strcmp(category, "Identificadores") == 0) identificadores = count;
-            else if (strcmp(category, "Constantes") == 0) constantes = count;
-            else if (strcmp(category, "Operadores") == 0) operadores = count;
-            else if (strcmp(category, "Puntuacion") == 0) puntuacion = count;
-            else if (strcmp(category, "Total") == 0) total = count;
-        }
-        fclose(stats_file);
-    }
-    
-    // Calcular altura máxima automáticamente
-    int max_val = palabras_clave;
-    if (identificadores > max_val) max_val = identificadores;
-    if (constantes > max_val) max_val = constantes;
-    if (operadores > max_val) max_val = operadores;
-    if (puntuacion > max_val) max_val = puntuacion;
+void generar_histograma(FILE* beamer) {
+
+    // Calcular altura máxima 
+    int max_val = Cant_PalabrasClave;
+    if (Cant_Identificadores > max_val) max_val = Cant_Identificadores;
+    if (Cant_Constantes > max_val) max_val = Cant_Constantes;
+    if (Cant_Operadores > max_val) max_val = Cant_Operadores;
+    if (Cant_Puntuacion > max_val) max_val = Cant_Puntuacion;
     int ymax = (int)(max_val * 1.2);
     
 fprintf(beamer, "\\begin{frame}{Distribución de Tokens - Histograma}\n");
@@ -480,9 +491,9 @@ fprintf(beamer, "\\begin{frame}{Distribución de Tokens - Histograma}\n");
     fprintf(beamer, "                enlargelimits=0.15,\n");
     fprintf(beamer, "                ylabel={Cantidad de Tokens},\n");
     fprintf(beamer, "                ylabel style={font=\\small},\n");
-    fprintf(beamer, "                symbolic x coords={{Palabras\\\\Reservadas}, Identificadores, Constantes, Operadores, Puntuación},\n"); 
+    fprintf(beamer, "                symbolic x coords={{Palabras\\\\Reservadas}, Identi-\\\\ficadores, Constantes, Opera-\\\\dores, Puntuación},\n"); 
     fprintf(beamer, "                xtick=data,\n");
-    fprintf(beamer, "                xticklabel style={font=\\small,align=center,text depth=0pt},\n"); // ALINEACIÓN CENTRADA
+    fprintf(beamer, "                xticklabel style={font=\\small,align=center,text depth=0pt},\n"); 
     fprintf(beamer, "                nodes near coords,\n");
     fprintf(beamer, "                nodes near coords style={font=\\footnotesize, yshift=5pt},\n");
     fprintf(beamer, "                ymajorgrids=true,\n");
@@ -492,11 +503,11 @@ fprintf(beamer, "\\begin{frame}{Distribución de Tokens - Histograma}\n");
     fprintf(beamer, "                axis lines*=left\n");
     fprintf(beamer, "            ]\n");
     fprintf(beamer, "            \\addplot[fill=blue!35, draw=blue!70!black, line width=0.7pt] coordinates {\n");
-    fprintf(beamer, "                ({Palabras\\\\Reservadas}, %d)\n", palabras_clave); // NOTA: también aquí van llaves
-    fprintf(beamer, "                (Identificadores, %d)\n", identificadores);
-    fprintf(beamer, "                (Constantes, %d)\n", constantes);
-    fprintf(beamer, "                (Operadores, %d)\n", operadores);
-    fprintf(beamer, "                (Puntuación, %d)\n", puntuacion);
+    fprintf(beamer, "                ({Palabras\\\\Reservadas}, %d)\n", Cant_PalabrasClave); 
+    fprintf(beamer, "                (Identi-\\\\ficadores, %d)\n", Cant_Identificadores);
+    fprintf(beamer, "                (Constantes, %d)\n", Cant_Constantes);
+    fprintf(beamer, "                (Opera-\\\\dores, %d)\n", Cant_Operadores);
+    fprintf(beamer, "                (Puntuación, %d)\n", Cant_Puntuacion);
     fprintf(beamer, "            };\n");
     fprintf(beamer, "            \\end{axis}\n");
     fprintf(beamer, "        \\end{tikzpicture}\n");
@@ -504,59 +515,88 @@ fprintf(beamer, "\\begin{frame}{Distribución de Tokens - Histograma}\n");
     fprintf(beamer, "    \\end{center}\n");
     fprintf(beamer, "    \\vspace{0.1cm}\n");
     fprintf(beamer, "    \\begin{itemize}\n");
-    fprintf(beamer, "        \\item \\textbf{Tokens totales:} %d\n", total);
+    fprintf(beamer, "        \\item \\textbf{Tokens totales:} %d\n", Cant_Total);
     fprintf(beamer, "    \\end{itemize}\n");
     fprintf(beamer, "\\end{frame}\n\n");
 }
 
-void generar_beamer(const char* preprocessed_file, const char* token_stats) {
+void generar_pie(FILE* beamer ) {
+
+    if (Cant_Total == 0) {
+        fprintf(beamer, "\\begin{frame}{Distribución de Tokens - Gráfico de Pastel}\n");
+        fprintf(beamer, "    \\begin{center}\n");
+        fprintf(beamer, "        No hay datos suficientes para generar el gráfico de pastel\n");
+        fprintf(beamer, "    \\end{center}\n");
+        fprintf(beamer, "\\end{frame}\n\n");
+        return;
+    }
+    
+    fprintf(beamer, "\\begin{frame}{Distribución de Tokens - Gráfico de Pastel}\n");
+    fprintf(beamer, "    \\vspace{0.3cm}\n");
+    fprintf(beamer, "    \\begin{center}\n");
+    fprintf(beamer, "        \\begin{tikzpicture}\n");
+    fprintf(beamer, "            \\pie[\n");
+    fprintf(beamer, "                rotate=180,\n");
+    fprintf(beamer, "                radius=3,\n");
+    fprintf(beamer, "                color={%s!60, %s!60, %s!60, %s!60, %s!60},\n", 
+            TK_Palabras_Reservadas, TK_Identificadores, TK_Constantes, 
+            TK_Operadores, TK_Puntuacion);
+
+    fprintf(beamer, "                text=legend,\n");
+    fprintf(beamer, "                sum=auto,\n");
+    fprintf(beamer, "                after number=,\n");
+    fprintf(beamer, "            ]{\n");
+    fprintf(beamer, "                %d/Palabras Reservadas,\n", Cant_PalabrasClave);
+    fprintf(beamer, "                %d/Identificadores,\n", Cant_Identificadores);
+    fprintf(beamer, "                %d/Constantes,\n", Cant_Constantes);
+    fprintf(beamer, "                %d/Operadores,\n", Cant_Operadores);
+    fprintf(beamer, "                %d/Puntuación\n", Cant_Puntuacion);
+    fprintf(beamer, "            }\n");
+    fprintf(beamer, "        \\end{tikzpicture}\n");
+    fprintf(beamer, "    \\end{center}\n");
+    fprintf(beamer, "\\end{frame}\n\n");
+}
+
+
+void generar_beamer(int cnt_pClaves, int cnt_id, int cnt_cons, int cnt_op, int cnt_puntu) {
     
     FILE* beamer = fopen("PresentacionBeamer.tex", "w");
     if (!beamer) {
-        fprintf(stderr, "❌ Error: No se puede crear archivo Beamer\n");
+        fprintf(stderr, "No se puede crear archivo Beamer\n");
         return;
     }
+
+    Cant_PalabrasClave = cnt_pClaves;
+    Cant_Identificadores = cnt_id;
+    Cant_Constantes = cnt_cons;
+    Cant_Operadores = cnt_op;
+    Cant_Puntuacion = cnt_puntu;
+    Cant_Total = Cant_PalabrasClave + Cant_Identificadores + Cant_Constantes + Cant_Operadores + Cant_Puntuacion;
     
 
     fprintf(beamer, "\\documentclass{beamer}\n");
     fprintf(beamer, "\\usepackage[utf8]{inputenc}\n");
-    fprintf(beamer, "\\usepackage[english]{babel}\n");
-    fprintf(beamer, "\\usepackage{graphicx}\n");
     fprintf(beamer, "\\usepackage{pgfplots}\n");
     fprintf(beamer, "\\usepackage{xcolor}\n");
-    fprintf(beamer, "\\usepackage{tikz}\n");
-    fprintf(beamer, "\\usepackage{fancyvrb}\n");
-    fprintf(beamer, "\\usepackage{listings}\n");
-    fprintf(beamer, "\\usepackage{textcomp} %% Para caracteres especiales\n");
-    fprintf(beamer, "\\usetikzlibrary{arrows, positioning}\n");
-    fprintf(beamer, "\\usetheme{Madrid}\n");
-    fprintf(beamer, "\\usecolortheme{whale}\n");
+    fprintf(beamer, "\\usepackage{pgf-pie}\n");
+    fprintf(beamer, "\\usepackage{xcolor}\n");
+    fprintf(beamer, "\\usetheme{metropolis}\n");
+
     
-    fprintf(beamer, "\\usepackage{amsmath,amssymb}\n"); 
-    fprintf(beamer, "\\pgfplotsset{compat=1.18}\n"); 
-    
-    fprintf(beamer, "\\usepackage{hyperref}\n");
-    fprintf(beamer, "\\hypersetup{pdfpagemode=FullScreen} %% Abrir en modo presentación\n");
-    
-    fprintf(beamer, "\\setbeamertemplate{navigation symbols}{}\n\n");
-    
-    fprintf(beamer, "\\DefineVerbatimEnvironment{code}{Verbatim}{fontsize=\\scriptsize, formatcom=\\color{black}}\n\n");
     
 
-    fprintf(beamer, "\\sloppy\n");
-    fprintf(beamer, "\\tolerance=1000\n");
-    fprintf(beamer, "\\emergencystretch=1.5em\n\n");
-    
     fprintf(beamer, "\\title{Analizador Léxico}\n");
     fprintf(beamer, "\\date{Semestre II - 2025}\n");
     fprintf(beamer, "\\institute{TEC}\n\n");
+
     
     fprintf(beamer, "\\begin{document}\n\n");
     
     generar_portada(beamer);
     generar_flex(beamer);
-    generar_codigo(beamer, preprocessed_file);
-    generar_histograma(beamer, token_stats);
+    generar_codigo(beamer);
+    generar_histograma(beamer);
+    generar_pie(beamer);
     
     fprintf(beamer, "\\end{document}\n");
     fclose(beamer);
