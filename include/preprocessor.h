@@ -20,12 +20,15 @@ typedef struct {
     char current_file[MAX_FILENAME];
 } PreprocessorState;
 
-// Declaraciones CORREGIDAS
-int preprocess(const char* input_filename, const char* output_filename);
-int preprocess_file(const char* filename, FILE* output, PreprocessorState* state);
+// Declaraciones
+int preprocess(const char* input_filename, const char* output_filename, int enable_preprocessing);
+int preprocess_file(const char* filename, FILE* output, PreprocessorState* state, int enable_preprocessing);
 void add_define(PreprocessorState* state, const char* name, const char* value);
 const char* find_define(PreprocessorState* state, const char* name);
 char* expand_defines(PreprocessorState* state, const char* text);
-void process_define_directive(PreprocessorState* state, const char* line);  // ← AÑADIR
+void process_define_directive(PreprocessorState* state, const char* line);
+int process_include_directive(PreprocessorState* state, const char* line, FILE* output, int enable_preprocessing);
+int process_system_include(PreprocessorState* state, const char* filename, FILE* output, int enable_preprocessing);
 
 #endif
+

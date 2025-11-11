@@ -1,2 +1,6 @@
-#include <stdio.h>
-#define GREETING "Hola desde header"
+#ifndef HEADER_H
+#define HEADER_H
+
+void funcion_ejemplo();
+
+#endif
