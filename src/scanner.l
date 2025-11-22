@@ -1,14 +1,27 @@
 %{
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include "tokens.h"
+#include "parser.tab.h"
+extern YYLTYPE yylloc;
 int line = 1;
 int column = 1;
-int yylval_int;
-double yylval_double;
-char yylval_char;
-char* yylval_string;
+int debug_lex = 1;
+
+
+/* ================= MACROS PARA REDUCIR CÓDIGO ================= */
+#define YYSETLOC() yylloc.first_line = line; yylloc.first_column = column; column += yyleng
+#define YYTOKEN(tok) {YYSETLOC(); yylval.id = strdup(yytext); DEBUG_TOKEN(#tok); return tok;}
+#define YYLEX_ID(tok) {YYSETLOC(); yylval.id = strdup(yytext); DEBUG_TOKEN(#tok); return tok;}
+#define YYLEX_INT(tok,val) {YYSETLOC(); yylval.entero = val; DEBUG_TOKEN(#tok); return tok;}
+#define YYLEX_FLOAT(tok,val) {YYSETLOC(); yylval.real = val; DEBUG_TOKEN(#tok); return tok;}
+#define YYLEX_CHAR(tok,val) {YYSETLOC(); yylval.caracter = val; DEBUG_TOKEN(#tok); return tok;}
+#define YYLEX_STR(tok) {YYSETLOC(); yylval.cadena = strdup(yytext); DEBUG_TOKEN(#tok); return tok;}
+
+
+#define DEBUG_TOKEN(tok) if(debug_lex) printf("[LEX] %-25s => %-30s (line %d, col %d)\n", yytext, tok, line, column);
 %}
+
 
 DIGITO      [0-9]
 HEXA        (0[xX][0-9a-fA-F]+)
@@ -22,120 +35,121 @@ COMENTLINE  \/\/.*
 COMENTBLOCK \/\*([^*]|\*+[^*/])*\*+\/
 
 %%
-"auto"          { return TOKEN_AUTO; }
-"break"         { return TOKEN_BREAK; }
-"case"          { return TOKEN_CASE; }
-"char"          { return TOKEN_CHAR; }
-"const"         { return TOKEN_CONST; }
-"continue"      { return TOKEN_CONTINUE; }
-"default"       { return TOKEN_DEFAULT; }
-"do"            { return TOKEN_DO; }
-"double"        { return TOKEN_DOUBLE; }
-"else"          { return TOKEN_ELSE; }
-"enum"          { return TOKEN_ENUM; }
-"extern"        { return TOKEN_EXTERN; }
-"float"         { return TOKEN_FLOAT; }
-"for"           { return TOKEN_FOR; }
-"goto"          { return TOKEN_GOTO; }
-"if"            { return TOKEN_IF; }
-"int"           { return TOKEN_INT; }
-"long"          { return TOKEN_LONG; }
-"register"      { return TOKEN_REGISTER; }
-"return"        { return TOKEN_RETURN; }
-"short"         { return TOKEN_SHORT; }
-"signed"        { return TOKEN_SIGNED; }
-"sizeof"        { return TOKEN_SIZEOF; }
-"static"        { return TOKEN_STATIC; }
-"struct"        { return TOKEN_STRUCT; }
-"switch"        { return TOKEN_SWITCH; }
-"typedef"       { return TOKEN_TYPEDEF; }
-"union"         { return TOKEN_UNION; }
-"unsigned"      { return TOKEN_UNSIGNED; }
-"void"          { return TOKEN_VOID; }
-"volatile"      { return TOKEN_VOLATILE; }
-"while"         { return TOKEN_WHILE; }
-{ID}            { return TOKEN_ID; }
-{HEXA}      { yylval_int = (int)strtol(yytext, NULL, 16); return TOKEN_CONST_ENTERO; }
-{DIGITO}+  { yylval_int = atoi(yytext); return TOKEN_CONST_ENTERO; }
-{DIGITO}+"."{DIGITO}+  { yylval_double = atof(yytext); return TOKEN_CONST_FLOTANTE; }
-{CARACTER}  { yylval_char = yytext[1]; return TOKEN_CONST_CARACTER; } 
-{CADENA}    { yylval_string = strdup(yytext); return TOKEN_CONST_CADENA; }
-"+="    	{ return TOKEN_ADD_ASSIGN; }
-"-="    	{ return TOKEN_SUB_ASSIGN; }
-"*="    	{ return TOKEN_MUL_ASSIGN; }
-"/="    	{ return TOKEN_DIV_ASSIGN; }
-"%="    	{ return TOKEN_MOD_ASSIGN; }
-"<<="   	{ return TOKEN_SHL_ASSIGN; }
-">>="   	{ return TOKEN_SHR_ASSIGN; }
-"&="    	{ return TOKEN_AND_ASSIGN; }
-"^="    	{ return TOKEN_XOR_ASSIGN; }
-"|="    	{ return TOKEN_OR_ASSIGN; }
-"++"            { return TOKEN_INC; }
-"--"            { return TOKEN_DEC; }
-"?"		{ return TOKEN_TERN_IF; }
-"+"             { return TOKEN_MAS; }
-"%"             { return TOKEN_MOD; }
-"-"             { return TOKEN_MENOS; }
-"*"             { return TOKEN_MULT; }
-"/"             { return TOKEN_DIV; }
-"="             { return TOKEN_ASIGN; }
-"=="            { return TOKEN_IGUAL; }
-"!="            { return TOKEN_DIF; }
-"<"             { return TOKEN_MENOR; }
-">"             { return TOKEN_MAYOR; }
-"<="            { return TOKEN_MENOR_IGUAL; }
-">="            { return TOKEN_MAYOR_IGUAL; }
-"&&"            { return TOKEN_AND; }
-"||"            { return TOKEN_OR; }
-"!"             { return TOKEN_NOT; }
-"&"             { return TOKEN_AND_BIT; }
-"|"             { return TOKEN_OR_BIT; }
-"^"             { return TOKEN_XOR; }
-"<<"            { return TOKEN_DESPL_IZQ; }
-">>"            { return TOKEN_DESPL_DER; }
-";"             { return TOKEN_PUNTO_COMA; }
-":"             { return TOKEN_DOS_PUNTO; }
-"#"		{ return TOKEN_GATO; }
-","             { return TOKEN_COMA; }
-"~"		{ return TOKEN_TILDE; }
-"("             { return TOKEN_PARENT_IZQ; }
-")"             { return TOKEN_PARENT_DER; }
-"{"             { return TOKEN_LLAVE_IZQ; }
-"}"             { return TOKEN_LLAVE_DER; }
-"["             { return TOKEN_CORCH_IZQ; }
-"]"             { return TOKEN_CORCH_DER; }
-"."             { return TOKEN_PUNTO; }
-"->"            { return TOKEN_FLECHA; }
-{COMENTLINE}    {}
-{COMENTBLOCK}   {}
-{ESPACIOS}      { column += yyleng; }/*Sirve para mantener el orden de donde se encontraron las palabras*/
+
+
+"auto"          {YYTOKEN(TOKEN_AUTO);}
+"define"        {YYTOKEN(TOKEN_DEFINE);}
+"include"       {YYTOKEN(TOKEN_INCLUDE);}
+"break"         {YYTOKEN(TOKEN_BREAK);}
+"case"          {YYTOKEN(TOKEN_CASE);}
+"char"          {YYTOKEN(TOKEN_CHAR);}
+"const"         {YYTOKEN(TOKEN_CONST);}
+"continue"      {YYTOKEN(TOKEN_CONTINUE);}
+"default"       {YYTOKEN(TOKEN_DEFAULT);}
+"do"            {YYTOKEN(TOKEN_DO);}
+"double"        {YYTOKEN(TOKEN_DOUBLE);}
+"else"          {YYTOKEN(TOKEN_ELSE);}
+"enum"          {YYTOKEN(TOKEN_ENUM);}
+"extern"        {YYTOKEN(TOKEN_EXTERN);}
+"float"         {YYTOKEN(TOKEN_FLOAT);}
+"for"           {YYTOKEN(TOKEN_FOR);}
+"goto"          {YYTOKEN(TOKEN_GOTO);}
+"if"            {YYTOKEN(TOKEN_IF);}
+"int"           {YYTOKEN(TOKEN_INT);}
+"long"          {YYTOKEN(TOKEN_LONG);}
+"register"      {YYTOKEN(TOKEN_REGISTER);}
+"return"        {YYTOKEN(TOKEN_RETURN);}
+"short"         {YYTOKEN(TOKEN_SHORT);}
+"signed"        {YYTOKEN(TOKEN_SIGNED);}
+"sizeof"        {YYTOKEN(TOKEN_SIZEOF);}
+"static"        {YYTOKEN(TOKEN_STATIC);}
+"struct"        {YYTOKEN(TOKEN_STRUCT);}
+"switch"        {YYTOKEN(TOKEN_SWITCH);}
+"typedef"       {YYTOKEN(TOKEN_TYPEDEF);}
+"union"         {YYTOKEN(TOKEN_UNION);}
+"unsigned"      {YYTOKEN(TOKEN_UNSIGNED);}
+"void"          {YYTOKEN(TOKEN_VOID);}
+"volatile"      {YYTOKEN(TOKEN_VOLATILE);}
+"while"         {YYTOKEN(TOKEN_WHILE);}
+
+
+{ID}            {YYLEX_ID(TOKEN_ID);}
+{HEXA}          {YYLEX_INT(TOKEN_CONST_ENTERO, strtol(yytext,NULL,16));}
+{DIGITO}+       {YYLEX_INT(TOKEN_CONST_ENTERO, atoi(yytext));}
+{DIGITO}+"."{DIGITO}+ {YYLEX_FLOAT(TOKEN_CONST_FLOTANTE, atof(yytext));}
+{CARACTER}      {YYLEX_CHAR(TOKEN_CONST_CARACTER, yytext[1]);}
+{CADENA}        {YYLEX_STR(TOKEN_CONST_CADENA);}
+
+
+"+="            {YYTOKEN(TOKEN_ADD_ASSIGN);}
+"-="            {YYTOKEN(TOKEN_SUB_ASSIGN);}
+"*="            {YYTOKEN(TOKEN_MUL_ASSIGN);}
+"/="            {YYTOKEN(TOKEN_DIV_ASSIGN);}
+"%="            {YYTOKEN(TOKEN_MOD_ASSIGN);}
+"<<="           {YYTOKEN(TOKEN_SHL_ASSIGN);}
+">>="           {YYTOKEN(TOKEN_SHR_ASSIGN);}
+"&="            {YYTOKEN(TOKEN_AND_ASSIGN);}
+"^="            {YYTOKEN(TOKEN_XOR_ASSIGN);}
+"|="            {YYTOKEN(TOKEN_OR_ASSIGN);}
+
+
+"++"            {YYTOKEN(TOKEN_INC);}
+"--"            {YYTOKEN(TOKEN_DEC);}
+"?"             {YYTOKEN(TOKEN_TERN_IF);}
+"+"             {YYTOKEN(TOKEN_MAS);}
+"%"             {YYTOKEN(TOKEN_MOD);}
+"-"             {YYTOKEN(TOKEN_MENOS);}
+"*"             {YYTOKEN(TOKEN_MULT);}
+"/"             {YYTOKEN(TOKEN_DIV);}
+"="             {YYTOKEN(TOKEN_ASIGN);}
+"=="            {YYTOKEN(TOKEN_IGUAL);}
+"!="            {YYTOKEN(TOKEN_DIF);}
+"<"             {YYTOKEN(TOKEN_MENOR);}
+">"             {YYTOKEN(TOKEN_MAYOR);}
+"<="            {YYTOKEN(TOKEN_MENOR_IGUAL);}
+">="            {YYTOKEN(TOKEN_MAYOR_IGUAL);}
+"&&"            {YYTOKEN(TOKEN_AND);}
+"||"            {YYTOKEN(TOKEN_OR);}
+"!"             {YYTOKEN(TOKEN_NOT);}
+"&"             {YYTOKEN(TOKEN_AND_BIT);}
+"|"             {YYTOKEN(TOKEN_OR_BIT);}
+"^"             {YYTOKEN(TOKEN_XOR);}
+"<<"            {YYTOKEN(TOKEN_DESPL_IZQ);}
+">>"            {YYTOKEN(TOKEN_DESPL_DER);}
+";"             {YYTOKEN(TOKEN_PUNTO_COMA);}
+":"             {YYTOKEN(TOKEN_DOS_PUNTO);}
+"#"             {YYTOKEN(TOKEN_GATO);}
+","             {YYTOKEN(TOKEN_COMA);}
+"~"             {YYTOKEN(TOKEN_TILDE);}
+"("             {YYTOKEN(TOKEN_PARENT_IZQ);}
+")"             {YYTOKEN(TOKEN_PARENT_DER);}
+"{"             {YYTOKEN(TOKEN_LLAVE_IZQ);}
+"}"             {YYTOKEN(TOKEN_LLAVE_DER);}
+"["             {YYTOKEN(TOKEN_CORCH_IZQ);}
+"]"             {YYTOKEN(TOKEN_CORCH_DER);}
+"."             {YYTOKEN(TOKEN_PUNTO);}
+"->"            {YYTOKEN(TOKEN_FLECHA);}
+
+
+{COMENTLINE}    { /* ignorar */ }
+{COMENTBLOCK}   { /* ignorar */ }
+{ESPACIOS}      { column += yyleng; }
 {NUEVALINEA}    { line++; column = 1; }
-<<EOF>>		{ return TOKEN_EOF;}
-.               { return TOKEN_ERROR; }
+
+
+. {
+    yylloc.first_line = line;
+    yylloc.first_column = column;
+    column += yyleng;
+
+    yylval.id = strdup(yytext);  /* Guardar como error */
+    DEBUG_TOKEN("TOKEN_ERROR");
+    return TOKEN_ERROR;
+}
+
+
+<<EOF>> { return 0; }
+
 %%
 
-Token Get_Token(void) {
-    Token token;
-    token.type = yylex();
-    token.lexeme = strdup(yytext);
-    token.line = line;
-    token.column = column;
-
-    switch (token.type) {
-        case TOKEN_CONST_ENTERO:
-            token.valor.valorEntero = yylval_int;
-            break;
-        case TOKEN_CONST_FLOTANTE:
-            token.valor.valorFlotante = yylval_double;
-            break;
-        case TOKEN_CONST_CARACTER:
-            token.valor.caracter = yylval_char;
-            break;
-        case TOKEN_CONST_CADENA:
-            token.valor.cadena = yylval_string;
-            break;
-        default:
-            break;
-    }
-    return token;
-}
+int yywrap() { return 1; }
