@@ -125,7 +125,69 @@ directiva_preprocesador:
     TOKEN_GATO TOKEN_INCLUDE TOKEN_CONST_CADENA
     | TOKEN_GATO TOKEN_INCLUDE TOKEN_MENOR TOKEN_ID TOKEN_PUNTO TOKEN_ID TOKEN_MAYOR
     | TOKEN_GATO TOKEN_DEFINE TOKEN_ID
-    | TOKEN_GATO TOKEN_DEFINE TOKEN_ID TOKEN_CONST_ENTERO
+    | TOKEN_GATO TOKEN_DEFINE TOKEN_ID cuerpo_define
+    ;
+
+/* Cuerpo de un #define - puede ser macro con parámetros o secuencia de tokens */
+cuerpo_define:
+    macro_con_parametros
+    | secuencia_tokens_define
+    ;
+
+/* Macro con parámetros: #define FOO(x,y) ... */
+macro_con_parametros:
+    TOKEN_PARENT_IZQ lista_parametros_macro TOKEN_PARENT_DER secuencia_tokens_define
+    | TOKEN_PARENT_IZQ TOKEN_PARENT_DER secuencia_tokens_define
+    ;
+
+lista_parametros_macro:
+    TOKEN_ID
+    | lista_parametros_macro TOKEN_COMA TOKEN_ID
+    ;
+
+/* Secuencia de tokens para el cuerpo del define */
+secuencia_tokens_define:
+    token_define
+    | secuencia_tokens_define token_define
+    ;
+
+token_define:
+    TOKEN_ID
+    | TOKEN_CONST_ENTERO
+    | TOKEN_CONST_FLOTANTE
+    | TOKEN_CONST_CARACTER
+    | TOKEN_CONST_CADENA
+    | TOKEN_PARENT_IZQ
+    | TOKEN_PARENT_DER
+    | TOKEN_CORCH_IZQ
+    | TOKEN_CORCH_DER
+    | TOKEN_MAS
+    | TOKEN_MENOS
+    | TOKEN_MULT
+    | TOKEN_DIV
+    | TOKEN_MOD
+    | TOKEN_AND_BIT
+    | TOKEN_OR_BIT
+    | TOKEN_XOR
+    | TOKEN_TILDE
+    | TOKEN_NOT
+    | TOKEN_IGUAL
+    | TOKEN_DIF
+    | TOKEN_MENOR
+    | TOKEN_MAYOR
+    | TOKEN_MENOR_IGUAL
+    | TOKEN_MAYOR_IGUAL
+    | TOKEN_AND
+    | TOKEN_OR
+    | TOKEN_DESPL_IZQ
+    | TOKEN_DESPL_DER
+    | TOKEN_INC
+    | TOKEN_DEC
+    | TOKEN_PUNTO
+    | TOKEN_FLECHA
+    | TOKEN_TERN_IF
+    | TOKEN_DOS_PUNTO
+    | TOKEN_COMA
     ;
 
 /* ======================
@@ -134,12 +196,21 @@ directiva_preprocesador:
 declaracion_externa:
     declaracion_variable
     | definicion_funcion
+    | declaracion_funcion
     ;
 
 declaracion_variable:
     especificador_declaracion lista_declaradores TOKEN_PUNTO_COMA
     | declaracion_struct TOKEN_PUNTO_COMA
     | declaracion_enum TOKEN_PUNTO_COMA
+    ;
+
+/* Declaración de función (prototipo) */
+declaracion_funcion:
+    especificador_declaracion punteros_opcionales TOKEN_ID TOKEN_PARENT_IZQ lista_parametros TOKEN_PARENT_DER TOKEN_PUNTO_COMA
+    | especificador_declaracion punteros_opcionales TOKEN_ID TOKEN_PARENT_IZQ TOKEN_PARENT_DER TOKEN_PUNTO_COMA
+    | tipo_simple punteros_opcionales TOKEN_ID TOKEN_PARENT_IZQ lista_parametros TOKEN_PARENT_DER TOKEN_PUNTO_COMA
+    | tipo_simple punteros_opcionales TOKEN_ID TOKEN_PARENT_IZQ TOKEN_PARENT_DER TOKEN_PUNTO_COMA
     ;
 
 /* Especificador de declaración unificado - combina calificadores y tipo */
@@ -201,7 +272,7 @@ declarador:
 
 declarador_directo:
     TOKEN_ID
-    | TOKEN_ID TOKEN_CORCH_IZQ TOKEN_CONST_ENTERO TOKEN_CORCH_DER
+    | TOKEN_ID TOKEN_CORCH_IZQ expresion_condicional TOKEN_CORCH_DER
     | TOKEN_ID TOKEN_CORCH_IZQ TOKEN_CORCH_DER
     ;
 
